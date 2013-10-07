@@ -1,4 +1,3 @@
-
 Get Data from google spreadsheet
 
 
@@ -6,9 +5,9 @@ Get Data from google spreadsheet
 In [16]: 
 
 
-import os.path
-import ConfigParser
-import gspread
+	import os.path
+	import ConfigParser
+	import gspread
 
 from itertools import islice
 def take(n, iterable):
