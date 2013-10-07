@@ -1,3 +1,280 @@
-Alice, Please add your cleaning data file here.( include code Please)
 
-Test test test
+Get Data from google spreadsheet
+
+
+
+In [16]: 
+
+
+import os.path
+import ConfigParser
+import gspread
+
+from itertools import islice
+def take(n, iterable):
+    "Return first n items of the iterable as a list"
+    return list(islice(iterable, n))
+
+
+
+Set path
+
+
+
+In [19]: 
+
+
+home = os.path.expanduser("/Users/aliceman/School/Fall13/STAT157/proj1")
+configfile = os.path.join(home, 'stat157.cfg')
+config = ConfigParser.SafeConfigParser()
+config.read(configfile)
+username = config.get('google', 'username')
+password = config.get('google', 'password')
+
+
+
+Login with google account to access the spreadsheet
+
+
+
+In [22]: 
+
+
+docid = config.get('questionnaire', 'docid')
+client = gspread.login(username, password)
+spreadsheet = client.open_by_key(docid)
+worksheet = spreadsheet.get_worksheet(0)
+print docid
+
+
+
+
+
+
+0Aj1QXjQixf-SdENDS1FzR1FGNE1kLUk0WGR1SW5peVE
+
+
+
+
+Define the fieldnames that are the columns we are interseted in. They are "What is your learning style? and "How often do you take the following roles in group projects? [A producer. This person knows how to get the job done."
+
+
+
+In [23]: 
+
+
+col1Key = 'What is your learning style?'
+col2Key = u'How often do you take the following roles in group projects? [A producer. This person knows how to get the job done.\xa0]'
+fieldnames = [col1Key, col2Key]
+
+
+
+We can now get the columns specified in the fieldnames. They are stored in a list called filtered_data
+
+
+
+In [24]: 
+
+
+filtered_data = []
+for row in worksheet.get_all_records():
+    filtered_data.append({k:v for k,v in row.iteritems() if k in fieldnames})
+
+
+
+Data Cleaning
+
+
+First of all, we want to work on the column "What is your learning style?". In this column, we are interested in the scores for the four categories: visual, aural, read/write and kinesthetic.
+
+
+For each row in the column, we get four scores in a list and they are stored in a dictionary first.
+
+
+
+In [25]: 
+
+
+def getRowLearn():
+	dictScore = {}
+	i = 0
+	for row in filtered_data:
+		lsScore = []
+		strLearn = row[col1Key]
+		splittedWords = strLearn.split()
+		lsScore+= [int(word) for word in splittedWords if word.isdigit()]
+		dictScore[i] = lsScore
+		i+=1
+	return dictScore
+
+
+
+Now we can separate four different scores into four different columns.
+
+
+
+In [26]: 
+
+
+dtscore = getRowLearn()
+lsVisual = []
+lsAural = []
+lsReadW = []
+lsKines = []
+for item in dtscore.values():
+	if(item == []):
+		lsVisual += [()]
+		lsAural += [()]
+		lsReadW += [()]
+		lsKines += [()]
+	else:
+		lsVisual += [item[0]]
+		lsAural += [item[1]]
+		lsReadW += [item[2]]
+		lsKines += [item[3]]
+
+
+
+Let's take a look how they look like now.
+
+
+
+In [27]: 
+
+
+print lsVisual
+print lsAural
+print lsReadW
+print lsKines
+
+
+
+
+
+
+[(), 3, (), 0, 9, (), 8, 8, (), 13, 10, (), 15, (), 5, 3, (), 10, 4, 4, 11, 4, 9, 10, (), 9, 7, (), (), 6, 6, 5, 11, (), 12, (), (), 2, 1, (), 9, (), (), (), 9, 9, 7, 2]
+[(), 5, (), 10, 9, (), 7, 1, (), 10, 4, (), 9, (), 1, 6, (), 10, 3, 3, 11, 4, 7, 7, (), 8, 11, (), (), 4, 5, 3, 11, (), 10, (), (), 3, 4, (), 7, (), (), (), 10, 11, 8, 6]
+[(), 4, (), 14, 3, (), 8, 8, (), 8, 5, (), 6, (), 4, 6, (), 2, 1, 11, 6, 7, 10, 11, (), 10, 4, (), (), 7, 7, 9, 9, (), 13, (), (), 6, 4, (), 5, (), (), (), 10, 3, 9, 4]
+[(), 7, (), 5, 3, (), 5, 5, (), 11, 10, (), 11, (), 6, 7, (), 13, 8, 4, 9, 1, 12, 7, (), 11, 8, (), (), 5, 5, 6, 5, (), 10, (), (), 5, 7, (), 5, (), (), (), 9, 8, 10, 4]
+
+
+
+
+Now just get rid of all the null parts.
+
+
+
+In [28]: 
+
+
+lsVisual1 = []
+lsAural1 = []
+lsReadW1 = []
+lsKines1 = []
+
+lsVisual1 = [i for i in lsVisual if i!=()]
+lsAural1 = [i for i in lsAural if i!=()]
+lsReadW1 = [i for i in lsReadW if i!=()]
+lsKines1 = [i for i in lsKines if i!=()]
+
+
+
+And we have the following:
+
+
+
+In [29]: 
+
+
+print lsVisual1
+print lsAural1
+print lsReadW1
+print lsKines1
+
+
+
+
+
+
+[3, 0, 9, 8, 8, 13, 10, 15, 5, 3, 10, 4, 4, 11, 4, 9, 10, 9, 7, 6, 6, 5, 11, 12, 2, 1, 9, 9, 9, 7, 2]
+[5, 10, 9, 7, 1, 10, 4, 9, 1, 6, 10, 3, 3, 11, 4, 7, 7, 8, 11, 4, 5, 3, 11, 10, 3, 4, 7, 10, 11, 8, 6]
+[4, 14, 3, 8, 8, 8, 5, 6, 4, 6, 2, 1, 11, 6, 7, 10, 11, 10, 4, 7, 7, 9, 9, 13, 6, 4, 5, 10, 3, 9, 4]
+[7, 5, 3, 5, 5, 11, 10, 11, 6, 7, 13, 8, 4, 9, 1, 12, 7, 11, 8, 5, 5, 6, 5, 10, 5, 7, 5, 9, 8, 10, 4]
+
+
+
+
+I also want to get the index of the empty learning style scores so that I can get rid of those rows for other columns.
+
+
+
+In [30]: 
+
+
+def getEmptIndex():
+	emptyScoreIndex = []
+	for i in range (0,len(lsVisual)):
+		if(lsVisual[i]==()):
+			emptyScoreIndex += [i]
+	return emptyScoreIndex
+
+
+
+Now we can move on to the second column.
+
+
+Get all the rows in the second column for how often you take the role as a producer.
+
+
+
+In [31]: 
+
+
+def getRowProduce():
+	dtFreq = {}
+	i = 0
+	for row in filtered_data:
+		strProd = row[col2Key]
+		dtFreq[i] = strProd
+		i += 1
+	return dtFreq
+
+
+
+We only get the rows that has a learning style score. We now make use of the getEmptyIndex() function to ignore all the rows with those index numbers.
+
+
+
+In [32]: 
+
+
+dtproduce = getRowProduce()
+emptyScoreIndex = getEmptIndex()
+lsProduce = []
+for i in dtproduce:
+	if i not in emptyScoreIndex:
+		lsProduce += [dtproduce[i]]
+
+
+
+We now check the length of all the vectors to see if they agree with each other. Now, they should all be 31.
+
+
+
+In [33]: 
+
+
+len(lsVisual1)
+len(lsAural1)
+len(lsReadW1)
+len(lsKines1)
+len(lsProduce)
+
+
+
+
+
+Out[33]:
+
+31
+
